@@ -1,0 +1,23 @@
+version: 1
+disable_existing_loggers: false
+formatters:
+  default:
+    format: '[{asctime}.{msecs:03.0f}][{levelname}] {name}:{lineno} - {message}'
+    style: '{'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+handlers:
+  stdout:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: default
+    stream: ext://sys.stdout
+  stderr:
+    class: logging.StreamHandler
+    level: ERROR
+    formatter: default
+    stream: ext://sys.stderr
+root:
+  level: DEBUG
+  handlers:
+  - stdout
+  - stderr

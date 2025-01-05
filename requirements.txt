@@ -1,0 +1,4 @@
+PyYAML >= 6.0.2
+pydantic >= 2.10.4
+pydantic-settings >= 2.7.1
+selenium >= 4.27.1

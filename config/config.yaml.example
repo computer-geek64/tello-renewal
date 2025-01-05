@@ -1,0 +1,10 @@
+tello:
+  email: someone@example.com
+  password: password
+  card_expiration: 1/25
+smtp:
+  server: gmail.com
+  port: 587
+  username: someone
+  password: password
+  from_email: '"Tello Renewal" <tello-renewal@gmail.com>'
