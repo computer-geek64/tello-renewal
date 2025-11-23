@@ -20,11 +20,12 @@ logger = logging.getLogger(__name__)
 class Renewer:
     _ELEMENT_TIMEOUT: ClassVar[float] = 30
 
-    def __init__(self, email: str, password: str, card_expiration: dt.date, emailer: Emailer, dry_run: bool = True) -> None:
+    def __init__(self, email: str, password: str, credit_card_last_four_digits: int, credit_card_expiration: dt.date, emailer: Emailer, dry_run: bool = True) -> None:
         self._emailer = emailer
         self._email = email
         self._password = password
-        self._card_expiration = card_expiration
+        self._credit_card_last_four_digits = credit_card_last_four_digits
+        self._credit_card_expiration = credit_card_expiration
         self._dry_run = dry_run
 
     @cached_property
@@ -37,7 +38,7 @@ class Renewer:
         self.open_login_page()
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None,) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
         if exc_type:
             self._emailer.send_failure_message(self._email)
         return self._webdriver.__exit__(exc_type, exc_val, exc_tb)
@@ -67,7 +68,7 @@ class Renewer:
     @cached_property
     def current_balance(self) -> AccountBalance:
         balance_elements = WebDriverWait(self._webdriver, self._ELEMENT_TIMEOUT).until(
-            expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR, "div.progress_holder div.pull-left.font-size30"))
+            expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR, "div.balance-title.balance-data.font-size30"))
         )
         return AccountBalance(*[
             BalanceQuantity.from_tello(e.text)
@@ -101,16 +102,26 @@ class Renewer:
         )
         renew_button.click()
 
-    def autofill_card_expiration(self) -> None:
+    def autofill_card_details(self) -> None:
+        card_select = Select(WebDriverWait(self._webdriver, self._ELEMENT_TIMEOUT).until(
+            expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "select#cc_select"))
+        ))
+        for option in card_select.options:
+            if option.text.endswith(str(self._credit_card_last_four_digits)):
+                card_select.select_by_visible_text(option.text)
+                break
+        else:
+            raise ValueError(f"No credit card found with last four digits {self._credit_card_last_four_digits}")
+
         expiration_month_select = Select(WebDriverWait(self._webdriver, self._ELEMENT_TIMEOUT).until(
             expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "select#cc_expiry_month"))
         ))
-        expiration_month_select.select_by_value(str(self._card_expiration.month))
+        expiration_month_select.select_by_value(str(self._credit_card_expiration.month))
 
         expiration_year_select = Select(WebDriverWait(self._webdriver, self._ELEMENT_TIMEOUT).until(
             expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "select#cc_expiry_year"))
         ))
-        expiration_year_select.select_by_value(str(self._card_expiration.year))
+        expiration_year_select.select_by_value(str(self._credit_card_expiration.year))
 
     def check_notification_box(self) -> None:
         notification_checkbox = WebDriverWait(self._webdriver, self._ELEMENT_TIMEOUT).until(
@@ -127,4 +138,7 @@ class Renewer:
             logger.info(f"Found finalize order button, skipping click for dry run")
         else:
             finalize_order_button.click()
+            WebDriverWait(self._webdriver, self._ELEMENT_TIMEOUT).until(
+                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "div.order_status.order_successful"))
+            )
             self._emailer.send_success_message(self._email, self.new_balance)

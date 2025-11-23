@@ -6,12 +6,11 @@ from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings
 
 
-class TelloConfig(BaseModel):
-    email: str
-    password: str
-    card_expiration: dt.date
+class CreditCardConfig(BaseModel):
+    last_four_digits: int
+    expiration: dt.date
 
-    @field_validator("card_expiration", mode="before")
+    @field_validator("expiration", mode="before")
     @classmethod
     def check_card_expiration(cls, value: str) -> dt.date:
         formats = [
@@ -33,6 +32,12 @@ class TelloConfig(BaseModel):
             except ValueError:
                 pass
         raise ValueError(f"Unknown expiration date format {value}")
+
+
+class TelloConfig(BaseModel):
+    email: str
+    password: str
+    credit_card: CreditCardConfig
 
 
 class SmtpConfig(BaseModel):

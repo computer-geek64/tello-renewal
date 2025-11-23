@@ -45,3 +45,4 @@ Please log in and complete this manually ASAP before tomorrow.
 
 https://tello.com/account/login
 """)
+        self._server.send_message(message)

@@ -1,7 +1,6 @@
 import argparse
 import datetime as dt
 import logging
-from time import sleep
 
 from tello_renewal.renew import Renewer
 from tello_renewal.utils.logging import configure_logging
@@ -29,7 +28,8 @@ def main(dry_run: bool) -> None:
     with Renewer(
         get_settings().tello.email,
         get_settings().tello.password,
-        get_settings().tello.card_expiration,
+        get_settings().tello.credit_card.last_four_digits,
+        get_settings().tello.credit_card.expiration,
         emailer,
         dry_run,
     ) as renewer:
@@ -45,10 +45,9 @@ def main(dry_run: bool) -> None:
         logger.info(f"New balance: {renewer.new_balance}")
 
         renewer.open_renewal_page()
-        renewer.autofill_card_expiration()
+        renewer.autofill_card_details()
         renewer.check_notification_box()
         renewer.submit_order()
-        sleep(30)
 
 
 def entrypoint() -> None:
