@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
 
-class BalanceQuantity[T: (int, float)]:
+class BalanceQuantity[T: (int, Decimal)]:
     def __init__(self, value: T | None, unit: str) -> None:
         self._value = value
         self._unit = unit
@@ -18,8 +19,10 @@ class BalanceQuantity[T: (int, float)]:
             return BalanceQuantity(None, unit)
 
         match unit:
+            case "MB":
+                return BalanceQuantity(Decimal(value) / 1_000, "GB")
             case "GB":
-                return BalanceQuantity(float(value), unit)
+                return BalanceQuantity(Decimal(value), unit)
             case "min" | "minutes":
                 return BalanceQuantity(int(value), "minutes")
             case "text" | "texts":
@@ -33,9 +36,13 @@ class BalanceQuantity[T: (int, float)]:
         return BalanceQuantity(self._value + other._value, self._unit)
 
     def __str__(self) -> str:
-        if self._value is None:
-            return f"Unlimited {self._unit}"
-        return f"{self._value} {self._unit}"
+        match self._value:
+            case None:
+                return f"Unlimited {self._unit}"
+            case Decimal():
+                return f"{self._value:,.2f} {self._unit}"
+            case _:
+                return f"{self._value} {self._unit}"
 
 
 @dataclass
